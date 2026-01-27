@@ -1,0 +1,7 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+// API routes removed as per cleanup
+
+

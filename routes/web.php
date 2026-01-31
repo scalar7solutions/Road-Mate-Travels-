@@ -14,6 +14,13 @@ use App\Http\Controllers\ColorOptionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\HomeBannerController;
 
+use App\Http\Controllers\VehicleTypeController;
+use App\Http\Controllers\DestinationGroupController;
+use App\Http\Controllers\PlaceController;
+use App\Http\Controllers\TourPackageController;
+use App\Http\Controllers\RentalPackageController;
+use App\Http\Controllers\BookingController;
+
 // ✅ load frontend routes
 require __DIR__ . '/frontend.php';
 
@@ -118,5 +125,53 @@ Route::prefix('admin')->middleware('web')->group(function () {
 
             Route::get('/homebanners/data', [HomeBannerController::class, 'data'])->name('homebanners.data');
         });
+
+
+// Vehicle Types
+Route::get('/vehicle-types', [VehicleTypeController::class, 'index'])->name('vehicletypes.index');
+Route::get('/vehicle-types/create', [VehicleTypeController::class, 'create'])->name('vehicletypes.create');
+Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicletypes.store');
+Route::get('/vehicle-types/{vehicleType}/edit', [VehicleTypeController::class, 'edit'])->name('vehicletypes.edit');
+Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicletypes.update');
+Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicletypes.destroy');
+
+// Destination Groups
+Route::get('/destination-groups', [DestinationGroupController::class, 'index'])->name('destinationgroups.index');
+Route::get('/destination-groups/create', [DestinationGroupController::class, 'create'])->name('destinationgroups.create');
+Route::post('/destination-groups', [DestinationGroupController::class, 'store'])->name('destinationgroups.store');
+Route::get('/destination-groups/{destinationGroup}/edit', [DestinationGroupController::class, 'edit'])->name('destinationgroups.edit');
+Route::put('/destination-groups/{destinationGroup}', [DestinationGroupController::class, 'update'])->name('destinationgroups.update');
+Route::delete('/destination-groups/{destinationGroup}', [DestinationGroupController::class, 'destroy'])->name('destinationgroups.destroy');
+
+// Places
+Route::get('/places', [PlaceController::class, 'index'])->name('places.index');
+Route::get('/places/create', [PlaceController::class, 'create'])->name('places.create');
+Route::post('/places', [PlaceController::class, 'store'])->name('places.store');
+Route::get('/places/{place}/edit', [PlaceController::class, 'edit'])->name('places.edit');
+Route::put('/places/{place}', [PlaceController::class, 'update'])->name('places.update');
+Route::delete('/places/{place}', [PlaceController::class, 'destroy'])->name('places.destroy');
+
+// Tour Packages
+Route::get('/tour-packages', [TourPackageController::class, 'index'])->name('tourpackages.index');
+Route::get('/tour-packages/create', [TourPackageController::class, 'create'])->name('tourpackages.create');
+Route::post('/tour-packages', [TourPackageController::class, 'store'])->name('tourpackages.store');
+Route::get('/tour-packages/{tourPackage}/edit', [TourPackageController::class, 'edit'])->name('tourpackages.edit');
+Route::put('/tour-packages/{tourPackage}', [TourPackageController::class, 'update'])->name('tourpackages.update');
+Route::delete('/tour-packages/{tourPackage}', [TourPackageController::class, 'destroy'])->name('tourpackages.destroy');
+
+// Rental Packages
+Route::get('/rental-packages', [RentalPackageController::class, 'index'])->name('rentalpackages.index');
+Route::get('/rental-packages/create', [RentalPackageController::class, 'create'])->name('rentalpackages.create');
+Route::post('/rental-packages', [RentalPackageController::class, 'store'])->name('rentalpackages.store');
+Route::get('/rental-packages/{rentalPackage}/edit', [RentalPackageController::class, 'edit'])->name('rentalpackages.edit');
+Route::put('/rental-packages/{rentalPackage}', [RentalPackageController::class, 'update'])->name('rentalpackages.update');
+Route::delete('/rental-packages/{rentalPackage}', [RentalPackageController::class, 'destroy'])->name('rentalpackages.destroy');
+
+// Bookings (admin)
+Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+Route::put('/bookings/{booking}/status', [BookingController::class, 'updateStatus'])->name('bookings.updateStatus');
+
+
     });
 });

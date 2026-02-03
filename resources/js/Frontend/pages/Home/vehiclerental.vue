@@ -118,4 +118,5 @@ const formatLkr = (n: number) => {
       </div>
     </div>
   </section>
+  
 </template>

@@ -1,269 +1,369 @@
+<!-- HomeBanner.vue -->
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { Link } from '@inertiajs/vue3'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import HomeQuickSearch from './HomeQuickSearch.vue'
 
 type Banner = {
   id: number | string
   name?: string
   description?: string | null
-  video_url: string | null
+  video_url?: string | null
+  image_url?: string | null
+  image?: string | null
+}
+
+type HeroBtn = {
+  label: string
+  href: string
+  variant: 'primary' | 'secondary' | 'whatsapp'
+}
+
+type HeroSlide = {
+  id: string
+  imageUrl?: string
+  videoUrl?: string
+  headline: string
+  subtext: string
+  ctaButtons: HeroBtn[]
 }
 
 const props = defineProps<{
   banners: Banner[]
 }>()
 
-const slides = computed(() => (props.banners ?? []).filter(b => !!b?.video_url) as Required<Banner>[])
-const hasSlides = computed(() => slides.value.length > 0)
+const whatsappHref = 'https://wa.me/94771234567'
 
-const trackRef = ref<HTMLDivElement | null>(null)
-const active = ref(0)
+const fallbackSlides: HeroSlide[] = [
+  {
+    id: '1',
+    imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
+    headline: 'Explore Sri Lanka with Road Mate',
+    subtext:
+      'Discover breathtaking landscapes, ancient temples, and pristine beaches with our curated tours',
+    ctaButtons: [
+      { label: 'View Packages', href: '/packages', variant: 'primary' },
+      { label: 'Vehicle Rentals', href: '/rentals', variant: 'secondary' },
+    ],
+  },
+  {
+    id: '2',
+    imageUrl: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=1920&q=80',
+    headline: 'Private Tours • Flexible Plans',
+    subtext: 'Create your perfect journey with custom itineraries tailored to your preferences',
+    ctaButtons: [
+      { label: 'Custom Tour', href: '/custom-tour', variant: 'primary' },
+      { label: 'Contact Us', href: '/contact', variant: 'secondary' },
+    ],
+  },
+  {
+    id: '3',
+    imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1920&q=80',
+    headline: 'Vehicle Rentals with Driver / Self Drive',
+    subtext: 'Premium fleet of vehicles for every journey - from luxury sedans to spacious vans',
+    ctaButtons: [
+      { label: 'Explore Rentals', href: '/rentals', variant: 'primary' },
+      { label: 'WhatsApp Us', href: '#', variant: 'whatsapp' },
+    ],
+  },
+]
 
-// Keep video refs (same order as slides)
-const videoEls = ref<Array<HTMLVideoElement | null>>([])
+const slides = computed<HeroSlide[]>(() => {
+  const list = (props.banners ?? []).filter(Boolean)
 
-const setVideoRef = (el: HTMLVideoElement | null, idx: number) => {
-  videoEls.value[idx] = el
-}
+  if (!list.length) return fallbackSlides
 
-let rafId: number | null = null
-let autoplayTimer: number | null = null
-let resumeTimer: number | null = null
-const userInteracting = ref(false)
+  return list.map((b, idx) => {
+    const img = (b.image_url || b.image || '').trim()
+    const vid = (b.video_url || '').trim()
 
-const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
-
-const scrollToIndex = (idx: number, behavior: ScrollBehavior = 'smooth') => {
-  const el = trackRef.value
-  if (!el) return
-  const count = slides.value.length
-  if (count === 0) return
-
-  const i = clamp(idx, 0, count - 1)
-  const w = el.clientWidth || 1
-  el.scrollTo({ left: i * w, behavior })
-  active.value = i
-}
-
-const next = () => {
-  const count = slides.value.length
-  if (count <= 1) return
-  const i = (active.value + 1) % count
-  scrollToIndex(i)
-}
-
-const prev = () => {
-  const count = slides.value.length
-  if (count <= 1) return
-  const i = (active.value - 1 + count) % count
-  scrollToIndex(i)
-}
-
-const onScroll = () => {
-  const el = trackRef.value
-  if (!el) return
-
-  if (rafId) cancelAnimationFrame(rafId)
-  rafId = requestAnimationFrame(() => {
-    const w = el.clientWidth || 1
-    const idx = clamp(Math.round(el.scrollLeft / w), 0, Math.max(0, slides.value.length - 1))
-    if (idx !== active.value) active.value = idx
-  })
-}
-
-const pauseAllExceptActive = async () => {
-  const count = slides.value.length
-  if (count === 0) return
-
-  for (let i = 0; i < count; i++) {
-    const v = videoEls.value[i]
-    if (!v) continue
-
-    // Ensure autoplay is allowed
-    v.muted = true
-    v.playsInline = true
-    v.loop = true
-
-    if (i === active.value) {
-      try {
-        const p = v.play()
-        // @ts-ignore
-        if (p?.catch) p.catch(() => {})
-      } catch {
-        // ignore
-      }
-    } else {
-      try {
-        v.pause()
-        v.currentTime = 0
-      } catch {
-        // ignore
-      }
+    return {
+      id: String(b.id ?? idx + 1),
+      imageUrl: img || undefined,
+      videoUrl: !img && vid ? vid : undefined,
+      headline: b.name || fallbackSlides[idx % fallbackSlides.length].headline,
+      subtext:
+        (b.description ?? '')?.trim() || fallbackSlides[idx % fallbackSlides.length].subtext,
+      ctaButtons: [
+        { label: 'Custom Tour', href: '/custom-tour', variant: 'primary' },
+        { label: 'Contact Us', href: '/contact', variant: 'secondary' },
+      ],
     }
-  }
+  })
+})
+
+const currentIndex = ref(0)
+const isPaused = ref(false)
+
+let intervalId: number | null = null
+
+const stop = () => {
+  if (intervalId) window.clearInterval(intervalId)
+  intervalId = null
 }
 
-const stopAutoplay = () => {
-  if (autoplayTimer) window.clearInterval(autoplayTimer)
-  autoplayTimer = null
-}
-
-const startAutoplay = () => {
-  stopAutoplay()
+const start = () => {
+  stop()
   if (slides.value.length <= 1) return
-
-  autoplayTimer = window.setInterval(() => {
-    if (userInteracting.value) return
-    next()
-  }, 6500)
+  intervalId = window.setInterval(() => {
+    if (isPaused.value) return
+    goToNext()
+  }, 6000)
 }
 
-const markInteraction = () => {
-  userInteracting.value = true
-  stopAutoplay()
-
-  if (resumeTimer) window.clearTimeout(resumeTimer)
-  resumeTimer = window.setTimeout(() => {
-    userInteracting.value = false
-    startAutoplay()
-  }, 9000)
+const goToNext = () => {
+  const max = slides.value.length - 1
+  currentIndex.value = currentIndex.value === max ? 0 : currentIndex.value + 1
 }
 
-const handleResize = () => {
-  // keep the current slide aligned after resize
-  scrollToIndex(active.value, 'auto')
+const goToPrevious = () => {
+  const max = slides.value.length - 1
+  currentIndex.value = currentIndex.value === 0 ? max : currentIndex.value - 1
 }
 
-onMounted(async () => {
-  await nextTick()
-  if (hasSlides.value) {
-    scrollToIndex(0, 'auto')
-    await pauseAllExceptActive()
-    startAutoplay()
-  }
-  window.addEventListener('resize', handleResize, { passive: true })
+const goTo = (idx: number) => {
+  currentIndex.value = Math.max(0, Math.min(idx, slides.value.length - 1))
+}
+
+onMounted(() => {
+  start()
 })
 
 onBeforeUnmount(() => {
-  stopAutoplay()
-  if (resumeTimer) window.clearTimeout(resumeTimer)
-  if (rafId) cancelAnimationFrame(rafId)
-  window.removeEventListener('resize', handleResize)
-})
-
-watch(active, async () => {
-  await nextTick()
-  await pauseAllExceptActive()
+  stop()
 })
 
 watch(
-  slides,
-  async () => {
-    active.value = 0
-    await nextTick()
-    scrollToIndex(0, 'auto')
-    await pauseAllExceptActive()
-    startAutoplay()
-  },
-  { deep: true }
+  () => slides.value.length,
+  () => {
+    currentIndex.value = 0
+    start()
+  }
 )
+
+const currentSlide = computed(() => slides.value[currentIndex.value])
 </script>
 
 <template>
-  <section v-if="hasSlides" class="w-full">
-    <div class="relative w-full">
-      <!-- Track -->
-      <div
-        ref="trackRef"
-        class="no-scrollbar flex w-full overflow-x-auto snap-x snap-mandatory scroll-smooth"
-        @scroll.passive="onScroll"
-        @pointerdown="markInteraction"
-        @touchstart.passive="markInteraction"
-        @wheel.passive="markInteraction"
-      >
-        <div
-          v-for="(b, idx) in slides"
-          :key="b.id"
-          class="relative w-full flex-shrink-0 snap-center bg-black"
-        >
-          <!-- Aspect control: feels like a hero banner on desktop, not too tall on mobile -->
-          <div class="relative w-full aspect-[16/9] sm:aspect-[21/9] md:aspect-[24/9] overflow-hidden">
-            <video
-              :ref="(el) => setVideoRef(el as HTMLVideoElement | null, idx)"
-              :src="b.video_url || ''"
-              class="h-full w-full object-cover"
-              muted
-              playsinline
-              loop
-              preload="metadata"
-            />
-            <!-- soft overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/10" />
+  <section
+    class="relative h-[90vh] min-h-[600px] overflow-hidden"
+    @mouseenter="isPaused = true"
+    @mouseleave="isPaused = false"
+  >
+    <!-- Background (NOW: smooth fade + zoom like framer-motion) -->
+    <Transition name="hero-bg" mode="out-in">
+      <div :key="currentSlide?.id" class="absolute inset-0 hero-bg-layer">
+        <!-- Image background -->
+        <img
+          v-if="currentSlide?.imageUrl"
+          :src="currentSlide.imageUrl"
+          :alt="currentSlide.headline"
+          class="w-full h-full object-cover"
+          draggable="false"
+        />
 
-            <!-- Caption (optional) -->
-            <div
-              v-if="b.name || b.description"
-              class="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8"
+        <!-- Video background -->
+        <video
+          v-else-if="currentSlide?.videoUrl"
+          :src="currentSlide.videoUrl"
+          class="w-full h-full object-cover"
+          muted
+          playsinline
+          autoplay
+          loop
+        />
+
+        <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/70" />
+      </div>
+    </Transition>
+
+    <!-- Content -->
+    <div class="absolute inset-0 flex items-center justify-center">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 container-custom text-center">
+        <Transition name="hero-up" mode="out-in">
+          <div :key="currentSlide?.id" class="will-change-transform">
+            <h1
+              class="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight"
             >
-              <div v-if="b.name" class="text-white font-semibold text-base sm:text-lg md:text-xl drop-shadow">
-                {{ b.name }}
-              </div>
-              <div
-                v-if="b.description"
-                class="mt-1 text-white/85 text-sm sm:text-base md:text-lg line-clamp-2 drop-shadow"
-              >
-                {{ b.description }}
-              </div>
+              {{ currentSlide?.headline }}
+            </h1>
+            <p class="text-lg md:text-xl text-white/90 max-w-3xl mx-auto mb-10">
+              {{ currentSlide?.subtext }}
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <template v-for="(btn, i) in currentSlide?.ctaButtons" :key="i">
+                <a
+                  v-if="btn.variant === 'whatsapp'"
+                  :href="whatsappHref"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold
+                         bg-green-500 hover:bg-green-600 text-white transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" class="w-5 h-5" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M20.52 3.48A11.78 11.78 0 0 0 12.03 0C5.4 0 .01 5.38.01 12c0 2.11.55 4.17 1.6 6.01L0 24l6.17-1.62A11.92 11.92 0 0 0 12.03 24C18.66 24 24 18.62 24 12c0-3.2-1.25-6.2-3.48-8.52Z"
+                    />
+                  </svg>
+                  {{ btn.label }}
+                </a>
+
+                <Link
+                  v-else
+                  :href="btn.href"
+                  class="inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition-colors"
+                  :class="
+                    btn.variant === 'primary'
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      : 'border border-white text-white hover:bg-white hover:text-gray-900'
+                  "
+                >
+                  {{ btn.label }}
+                </Link>
+              </template>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Arrows -->
-      <button
-        v-if="slides.length > 1"
-        type="button"
-        aria-label="Previous slide"
-        class="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/40 hover:bg-black/55 backdrop-blur px-3 py-3 text-white"
-        @click="prev"
-      >
-        <span class="text-lg leading-none">‹</span>
-      </button>
-
-      <button
-        v-if="slides.length > 1"
-        type="button"
-        aria-label="Next slide"
-        class="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/40 hover:bg-black/55 backdrop-blur px-3 py-3 text-white"
-        @click="next"
-      >
-        <span class="text-lg leading-none">›</span>
-      </button>
-
-      <!-- Dots -->
-      <div
-        v-if="slides.length > 1"
-        class="absolute bottom-3 left-0 right-0 z-10 flex items-center justify-center gap-2"
-      >
-        <button
-          v-for="(_, i) in slides"
-          :key="i"
-          type="button"
-          :aria-label="`Go to slide ${i + 1}`"
-          class="h-2.5 w-2.5 rounded-full transition"
-          :class="i === active ? 'bg-white' : 'bg-white/40 hover:bg-white/60'"
-          @click="scrollToIndex(i)"
-        />
+        </Transition>
       </div>
     </div>
+
+    <!-- Navigation -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6">
+      <button
+        type="button"
+        @click="goToPrevious"
+        class="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+        aria-label="Previous slide"
+      >
+        <svg viewBox="0 0 24 24" class="w-6 h-6 text-white" aria-hidden="true">
+          <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+        </svg>
+      </button>
+
+      <div class="flex gap-3">
+        <button
+          v-for="(_, idx) in slides"
+          :key="idx"
+          type="button"
+          @click="goTo(idx)"
+          class="h-2 rounded-full transition-all duration-300"
+          :class="idx === currentIndex ? 'w-8 bg-white' : 'w-2 bg-white/50 hover:bg-white/70'"
+          :aria-label="`Go to slide ${idx + 1}`"
+        />
+      </div>
+
+      <button
+        type="button"
+        @click="goToNext"
+        class="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+        aria-label="Next slide"
+      >
+        <svg viewBox="0 0 24 24" class="w-6 h-6 text-white" aria-hidden="true">
+          <path fill="currentColor" d="m8.59 16.59 1.41 1.41 6-6-6-6-1.41 1.41L13.17 12z" />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        @click="isPaused = !isPaused"
+        class="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors ml-2"
+        :aria-label="isPaused ? 'Play slideshow' : 'Pause slideshow'"
+      >
+        <svg v-if="isPaused" viewBox="0 0 24 24" class="w-5 h-5 text-white" aria-hidden="true">
+          <path fill="currentColor" d="M8 5v14l11-7z" />
+        </svg>
+        <svg v-else viewBox="0 0 24 24" class="w-5 h-5 text-white" aria-hidden="true">
+          <path fill="currentColor" d="M6 5h4v14H6V5zm8 0h4v14h-4V5z" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 right-8 hidden lg:block floaty">
+      <div class="w-6 h-10 rounded-full border-2 border-white/50 flex justify-center pt-2">
+        <div class="w-1.5 h-3 rounded-full bg-white/80" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Search -->
+  <section class="relative z-10 -mt-24 pb-16">
+    <HomeQuickSearch />
   </section>
 </template>
 
 <style scoped>
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ========= HERO BACKGROUND TRANSITION (fade + zoom like framer-motion) ========= */
+.hero-bg-layer {
+  will-change: opacity, transform, filter;
+  transform-origin: center;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+/* timings + easing like TSX: ease [0.25, 0.1, 0.25, 1] ~= cubic-bezier(0.25,0.1,0.25,1) */
+.hero-bg-enter-active {
+  transition: opacity 0.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+    filter 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.hero-bg-leave-active {
+  transition: opacity 0.6s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1),
+    filter 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* enter: start slightly zoomed in + tiny blur */
+.hero-bg-enter-from {
+  opacity: 0;
+  transform: scale(1.08);
+  filter: blur(2px);
+}
+.hero-bg-enter-to {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0px);
+}
+
+/* exit: fade out (keep it stable, or tiny zoom out if you want) */
+.hero-bg-leave-from {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0px);
+}
+.hero-bg-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
+  filter: blur(2px);
+}
+
+/* ========= CONTENT TRANSITION (same as before) ========= */
+.hero-up-enter-active,
+.hero-up-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.hero-up-enter-from {
+  opacity: 0;
+  transform: translateY(30px);
+}
+.hero-up-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+/* Scroll indicator float */
+@keyframes floaty {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.floaty {
+  animation: floaty 2s ease-in-out infinite;
 }
 </style>

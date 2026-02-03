@@ -42,15 +42,16 @@ const isAuthenticated = computed(() => !!user.value)
 
 const navLinks = computed<NavItem[]>(() => [
   { label: 'Home', href: safeRoute('frontend.root', {}, '/') },
-
-  // ✅ now routes correctly + keeps fallback
   { label: 'Destinations', href: safeRoute('frontend.destinations.index', {}, '/destinations') },
 
-  { label: 'Tour Packages', href: '/packages' },
+  // ✅ now uses route name (fallback still /packages)
+  { label: 'Tour Packages', href: safeRoute('frontend.tourpackages.index', {}, '/packages') },
+
   { label: 'Vehicle Rentals', href: '/rentals' },
   { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
 ])
+
 
 const isActive = (href: string) => {
   const path = currentPath.value

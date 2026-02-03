@@ -3,7 +3,7 @@ import ScrollReveal from '@/Components/ScrollReveal.vue'
 </script>
 
 <template>
-  <section class="relative py-16 lg:py-24 overflow-hidden">
+  <section class="relative py-20 lg:py-28 overflow-hidden">
     <div class="absolute inset-0">
       <img
         src="https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=1920&q=80"
@@ -16,10 +16,10 @@ import ScrollReveal from '@/Components/ScrollReveal.vue'
     <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <ScrollReveal>
         <div class="max-w-2xl">
-          <h1 class="text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
+        <h1 class="text-4xl lg:text-5xl xl:text-6xl font-bold text-primary-foreground mb-6">
             Tour Packages
           </h1>
-          <p class="text-lg text-primary-foreground/80">
+           <p class="text-lg text-primary-foreground/80">
             Carefully crafted itineraries for every type of traveler.
             From cultural explorations to beach getaways.
           </p>

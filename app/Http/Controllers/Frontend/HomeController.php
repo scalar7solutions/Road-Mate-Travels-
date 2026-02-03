@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\HomeBanner;
 use App\Models\DestinationGroup;
+use App\Models\TourPackage;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -44,7 +45,7 @@ class HomeController extends Controller
                 ];
             });
 
-        // ✅ Destination groups for ExploreSriLanka.vue
+        // Destination groups for ExploreSriLanka.vue
         $destinationGroups = DestinationGroup::query()
             ->where('status', 'active')
             ->orderBy('sort_order')
@@ -60,10 +61,48 @@ class HomeController extends Controller
                     'id' => $g->id,
                     'slug' => $g->slug,
                     'name' => $g->name,
-                    // if you don’t have description column yet, it will just be null
                     'description' => $g->description ?? null,
                     'coverImage' => $g->cover_image_path ? Storage::url($g->cover_image_path) : null,
                     'placesCount' => (int) ($g->places_count ?? 0),
+                ];
+            })
+            ->values();
+
+        // ✅ TODAY FILTER (Asia/Colombo app timezone)
+        $today = now()->toDateString();
+
+        // ✅ Tour packages for PopularPackages.vue (only published + in range)
+        $tourPackages = TourPackage::query()
+            ->where('status', 'published')
+            ->whereHas('availabilityRanges', function ($q) use ($today) {
+                $q->whereDate('start_date', '<=', $today)
+                  ->whereDate('end_date', '>=', $today);
+            })
+            ->with([
+                'destinationGroup:id,name',
+                'places:id,name',
+                'availabilityRanges:id,tour_package_id,start_date,end_date',
+                'priceOptions:id,tour_package_id,title,mode,values,status',
+            ])
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get()
+            ->map(function (TourPackage $p) {
+                $placeName = optional($p->places->first())->name;
+
+                $minPerPerson = $this->lowestPerPersonPrice($p);
+                $imageUrl = $p->main_image_path ? Storage::url($p->main_image_path) : null;
+
+                return [
+                    'id' => $p->id,
+                    'slug' => $p->slug,
+                    'name' => $p->name,
+                    'destinationGroupName' => optional($p->destinationGroup)->name ?? '',
+                    'placeName' => $placeName ?? '',
+                    'days' => (int) $p->days,
+                    'maxPassengers' => (int) $p->passenger_max,
+                    'coverImage' => $imageUrl,
+                    'fromPriceLkr' => $minPerPerson, // numeric
                 ];
             })
             ->values();
@@ -73,6 +112,81 @@ class HomeController extends Controller
             'activeCategory' => $activeCategory,
             'banners' => $banners,
             'destinationGroups' => $destinationGroups,
+            'tourPackages' => $tourPackages,
         ]);
+    }
+
+    /**
+     * Get lowest "per person" price from active price options.
+     * Priority: mode=per_person, fallback: lowest numeric found in any option values.
+     */
+    private function lowestPerPersonPrice(TourPackage $pkg): float
+    {
+        $perPersonMins = [];
+        $otherMins = [];
+
+        foreach ($pkg->priceOptions ?? [] as $opt) {
+            if (($opt->status ?? 'active') !== 'active') continue;
+
+            $nums = $this->extractNumericValues($opt->values ?? []);
+            $nums = array_filter($nums, fn($n) => is_numeric($n) && $n > 0);
+
+            if (empty($nums)) continue;
+
+            $min = (float) min($nums);
+
+            if (($opt->mode ?? '') === 'per_person') {
+                $perPersonMins[] = $min;
+            } else {
+                $otherMins[] = $min;
+            }
+        }
+
+        if (!empty($perPersonMins)) return (float) min($perPersonMins);
+        if (!empty($otherMins)) return (float) min($otherMins);
+
+        return 0.0;
+    }
+
+    /**
+     * Recursively extract numeric values from arrays/objects.
+     * Supports structures like:
+     * - [15000, 20000]
+     * - [{price:15000},{price:20000}]
+     * - {tiers:[{amount:15000}]} etc
+     */
+    private function extractNumericValues($value): array
+    {
+        $out = [];
+
+        if (is_numeric($value)) {
+            $out[] = (float) $value;
+            return $out;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $k => $v) {
+                // If associative, prefer keys that look like money fields
+                if (is_string($k) && preg_match('/(price|amount|value|lkr|rate|cost)/i', $k) && is_numeric($v)) {
+                    $out[] = (float) $v;
+                    continue;
+                }
+                $out = array_merge($out, $this->extractNumericValues($v));
+            }
+            return $out;
+        }
+
+        if (is_object($value)) {
+            foreach (get_object_vars($value) as $k => $v) {
+                if (preg_match('/(price|amount|value|lkr|rate|cost)/i', $k) && is_numeric($v)) {
+                    $out[] = (float) $v;
+                    continue;
+                }
+                $out = array_merge($out, $this->extractNumericValues($v));
+            }
+            return $out;
+        }
+
+        return $out;
     }
 }

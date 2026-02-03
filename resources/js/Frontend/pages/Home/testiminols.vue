@@ -118,6 +118,7 @@ const testimonials: Testimonial[] = [
               "{{ t.text }}"
             </p>
 
+            
             <span v-if="t.packageName" class="text-xs text-indigo-600 text-primary font-medium">
               {{ t.packageName }}
             </span>

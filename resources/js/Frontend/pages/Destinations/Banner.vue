@@ -13,8 +13,8 @@ import ScrollReveal from '@/Components/ScrollReveal.vue'
       <div class="absolute inset-0 bg-gradient-to-r from-foreground/80 to-foreground/40" />
     </div>
 
-    <div class="container-custom relative z-10">
-      <!-- using existing ScrollReveal (Vue) to mimic motion initial/animate -->
+    <!-- ✅ Use real container sizing here -->
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <ScrollReveal>
         <div class="max-w-2xl">
           <h1 class="text-4xl lg:text-5xl xl:text-6xl font-bold text-primary-foreground mb-6">

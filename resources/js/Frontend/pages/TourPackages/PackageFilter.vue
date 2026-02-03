@@ -34,24 +34,28 @@ const close = () => (isOpen.value = false)
 const clear = () => emit('clear')
 
 const showBadge = computed(() => props.hasActiveFilters)
+
+// ✅ Input styles to match your screenshot exactly
+const inputClass =
+  'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 ' +
+  'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300'
 </script>
 
 <template>
   <div class="w-full lg:w-auto">
-    <!-- Mobile Filter Button -->
+    <!-- Mobile Filter Button (same as TSX) -->
     <button
       type="button"
       @click="open"
-      class="lg:hidden flex items-center gap-2 px-4 py-3 rounded-xl border border-border hover:bg-muted transition-colors"
+      class="lg:hidden flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
     >
-      <!-- filter icon -->
       <svg viewBox="0 0 24 24" class="w-5 h-5" aria-hidden="true">
         <path fill="currentColor" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
       </svg>
       Filters
       <span
         v-if="showBadge"
-        class="w-5 h-5 rounded-full gradient-primary text-xs text-primary-foreground flex items-center justify-center"
+        class="w-5 h-5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-xs text-white flex items-center justify-center"
       >
         !
       </span>
@@ -59,61 +63,66 @@ const showBadge = computed(() => props.hasActiveFilters)
 
     <!-- Desktop Sidebar -->
     <aside class="hidden lg:block w-72 flex-shrink-0">
-      <div class="sticky top-24 bg-card rounded-2xl shadow-card p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="font-semibold text-foreground">Filters</h3>
-          <button
-            v-if="hasActiveFilters"
-            type="button"
-            class="text-sm text-primary hover:underline"
-            @click="clear"
-          >
-            Clear All
-          </button>
-        </div>
+      <!-- ✅ Sticky exactly like TSX -->
+      <div class="sticky top-24">
+        <!-- ✅ Card look like screenshot -->
+        <div class="rounded-3xl bg-white shadow-xl p-8">
+          <div class="flex items-center justify-between mb-8">
+            <h3 class="text-base font-semibold text-gray-900">Filters</h3>
 
-        <div class="space-y-6">
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-2">Destination</label>
-            <select v-model="filters.destination" class="input-field">
-              <option value="">All Destinations</option>
-              <option v-for="d in destinationGroups" :key="d.id" :value="d.id">
-                {{ d.name }}
-              </option>
-            </select>
+            <button
+              v-if="hasActiveFilters"
+              type="button"
+              class="text-sm font-medium text-indigo-600 hover:underline"
+              @click="clear"
+            >
+              Clear All
+            </button>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-2">Duration</label>
-            <select v-model="filters.days" class="input-field">
-              <option value="">Any Duration</option>
-              <option value="1-3">1-3 Days</option>
-              <option value="4-7">4-7 Days</option>
-              <option value="8-14">8-14 Days</option>
-              <option value="15">15+ Days</option>
-            </select>
-          </div>
+          <div class="space-y-7">
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Destination</label>
+              <select v-model="filters.destination" :class="inputClass">
+                <option value="">All Destinations</option>
+                <option v-for="d in destinationGroups" :key="d.id" :value="d.id">
+                  {{ d.name }}
+                </option>
+              </select>
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-2">Passengers</label>
-            <input
-              v-model="filters.passengers"
-              type="number"
-              min="1"
-              max="20"
-              placeholder="Number of travelers"
-              class="input-field"
-            />
-          </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Duration</label>
+              <select v-model="filters.days" :class="inputClass">
+                <option value="">Any Duration</option>
+                <option value="1-3">1-3 Days</option>
+                <option value="4-7">4-7 Days</option>
+                <option value="8-14">8-14 Days</option>
+                <option value="15">15+ Days</option>
+              </select>
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-2">Vehicle Type</label>
-            <select v-model="filters.vehicleType" class="input-field">
-              <option value="">Any Vehicle</option>
-              <option value="sedan">Sedan</option>
-              <option value="van">Van</option>
-              <option value="luxury">Luxury</option>
-            </select>
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Passengers</label>
+              <input
+                v-model="filters.passengers"
+                type="number"
+                min="1"
+                max="20"
+                placeholder="Number of travelers"
+                :class="inputClass"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Vehicle Type</label>
+              <select v-model="filters.vehicleType" :class="inputClass">
+                <option value="">Any Vehicle</option>
+                <option value="sedan">Sedan</option>
+                <option value="van">Van</option>
+                <option value="luxury">Luxury</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -131,7 +140,7 @@ const showBadge = computed(() => props.hasActiveFilters)
       >
         <div
           v-if="isOpen"
-          class="fixed inset-0 bg-foreground/50 z-50 lg:hidden"
+          class="fixed inset-0 bg-black/50 z-50 lg:hidden"
           @click="close"
         />
       </Transition>
@@ -146,12 +155,12 @@ const showBadge = computed(() => props.hasActiveFilters)
       >
         <div
           v-if="isOpen"
-          class="fixed top-0 left-0 bottom-0 w-80 bg-background z-50 lg:hidden shadow-2xl overflow-y-auto"
+          class="fixed top-0 left-0 bottom-0 w-80 bg-white z-50 lg:hidden shadow-2xl overflow-y-auto"
           @click.stop
         >
-          <div class="p-4 border-b border-border flex items-center justify-between">
-            <h3 class="font-semibold text-lg">Filters</h3>
-            <button type="button" class="p-2 hover:bg-muted rounded-lg" @click="close" aria-label="Close">
+          <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="font-semibold text-lg text-gray-900">Filters</h3>
+            <button type="button" class="p-2 hover:bg-gray-100 rounded-lg" @click="close" aria-label="Close">
               <svg viewBox="0 0 24 24" class="w-5 h-5" aria-hidden="true">
                 <path
                   fill="currentColor"
@@ -161,10 +170,10 @@ const showBadge = computed(() => props.hasActiveFilters)
             </button>
           </div>
 
-          <div class="p-4 space-y-6">
+          <div class="p-6 space-y-7">
             <div>
-              <label class="block text-sm font-medium text-foreground mb-2">Destination</label>
-              <select v-model="filters.destination" class="input-field">
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Destination</label>
+              <select v-model="filters.destination" :class="inputClass">
                 <option value="">All Destinations</option>
                 <option v-for="d in destinationGroups" :key="d.id" :value="d.id">
                   {{ d.name }}
@@ -173,8 +182,8 @@ const showBadge = computed(() => props.hasActiveFilters)
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-foreground mb-2">Duration</label>
-              <select v-model="filters.days" class="input-field">
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Duration</label>
+              <select v-model="filters.days" :class="inputClass">
                 <option value="">Any Duration</option>
                 <option value="1-3">1-3 Days</option>
                 <option value="4-7">4-7 Days</option>
@@ -184,19 +193,29 @@ const showBadge = computed(() => props.hasActiveFilters)
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-foreground mb-2">Passengers</label>
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Passengers</label>
               <input
                 v-model="filters.passengers"
                 type="number"
                 min="1"
                 max="20"
                 placeholder="Number of travelers"
-                class="input-field"
+                :class="inputClass"
               />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-3">Vehicle Type</label>
+              <select v-model="filters.vehicleType" :class="inputClass">
+                <option value="">Any Vehicle</option>
+                <option value="sedan">Sedan</option>
+                <option value="van">Van</option>
+                <option value="luxury">Luxury</option>
+              </select>
             </div>
           </div>
 
-          <div class="p-4 border-t border-border flex gap-3">
+          <div class="p-4 border-t border-gray-200 flex gap-3">
             <button type="button" class="btn-secondary flex-1" @click="clear">
               Clear
             </button>

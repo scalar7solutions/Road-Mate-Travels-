@@ -1,70 +1,35 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3'
+import { computed } from 'vue'
+import { Link, usePage } from '@inertiajs/vue3'
 import ScrollReveal from './ScrollReveal.vue'
 import StaggerContainer from './StaggerContainer.vue'
 import StaggerItem from './StaggerItem.vue'
 import SectionHeader from './SectionHeader.vue'
 
 type DestinationGroup = {
-  id: string
+  id: number | string
   slug: string
   name: string
-  description: string
-  coverImage: string
+  description?: string | null
+  coverImage?: string | null
   placesCount: number
 }
 
-// design-only mock (connect to backend later)
-const destinations: DestinationGroup[] = [
-  {
-    id: '1',
-    slug: 'cultural-triangle',
-    name: 'Cultural Triangle',
-    description: 'Explore ancient kingdoms, UNESCO sites, and sacred temples',
-    coverImage: 'https://images.unsplash.com/photo-1588598198321-31fd5adb8cfd?w=800&q=80',
-    placesCount: 8,
-  },
-  {
-    id: '2',
-    slug: 'hill-country',
-    name: 'Hill Country',
-    description: 'Tea plantations, cool climate, and breathtaking mountain landscapes',
-    coverImage: 'https://images.unsplash.com/photo-1586183189334-4c0e80c6f0ff?w=800&q=80',
-    placesCount: 6,
-  },
-  {
-    id: '3',
-    slug: 'southern-coast',
-    name: 'Southern Coast',
-    description: 'Golden beaches, colonial forts, and whale watching adventures',
-    coverImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
-    placesCount: 7,
-  },
-  {
-    id: '4',
-    slug: 'wildlife-safari',
-    name: 'Wildlife & Safari',
-    description: 'National parks teeming with elephants, leopards, and exotic birds',
-    coverImage: 'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=800&q=80',
-    placesCount: 5,
-  },
-  {
-    id: '5',
-    slug: 'east-coast',
-    name: 'East Coast',
-    description: 'Pristine beaches, surfing spots, and Hindu temples',
-    coverImage: 'https://images.unsplash.com/photo-1509233725247-49e657c54213?w=800&q=80',
-    placesCount: 4,
-  },
-  {
-    id: '6',
-    slug: 'adventure-trails',
-    name: 'Adventure Trails',
-    description: 'Hiking, trekking, rafting, and outdoor adventures',
-    coverImage: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80',
-    placesCount: 5,
-  },
-]
+type PageProps = {
+  destinationGroups?: DestinationGroup[]
+}
+
+const page = usePage<PageProps>()
+
+const destinations = computed<DestinationGroup[]>(() => {
+  const list = page.props.destinationGroups ?? []
+  return Array.isArray(list) ? list : []
+})
+
+const safeCover = (url?: string | null) => {
+  if (!url) return null
+  return url
+}
 </script>
 
 <template>
@@ -90,11 +55,20 @@ const destinations: DestinationGroup[] = [
           >
             <Link :href="`/destinations/${d.slug}`">
               <div class="aspect-[4/3] overflow-hidden relative">
+                <!-- Image (saved cover image) -->
                 <img
-                  :src="d.coverImage"
+                  v-if="safeCover(d.coverImage)"
+                  :src="d.coverImage!"
                   :alt="d.name"
                   class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
+
+                <!-- Fallback when no image yet -->
+                <div
+                  v-else
+                  class="w-full h-full bg-gradient-to-br from-gray-200 via-gray-100 to-gray-300"
+                />
+
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent gradient-card" />
               </div>
 
@@ -102,8 +76,8 @@ const destinations: DestinationGroup[] = [
                 <h3 class="text-xl font-bold text-white text-primary-foreground mb-1">
                   {{ d.name }}
                 </h3>
+
                 <div class="flex items-center gap-2 text-white/80 text-primary-foreground/80 text-sm">
-                  <!-- map pin -->
                   <svg viewBox="0 0 24 24" class="w-4 h-4" aria-hidden="true">
                     <path
                       fill="currentColor"
@@ -112,11 +86,19 @@ const destinations: DestinationGroup[] = [
                   </svg>
                   <span>{{ d.placesCount }} places to explore</span>
                 </div>
+
+                <p v-if="d.description" class="mt-2 text-white/80 text-sm line-clamp-2">
+                  {{ d.description }}
+                </p>
               </div>
             </Link>
           </div>
         </StaggerItem>
       </StaggerContainer>
+
+      <div v-if="destinations.length === 0" class="mt-8 text-center text-sm text-gray-500">
+        No destination groups found yet.
+      </div>
     </div>
   </section>
 </template>
